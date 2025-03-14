@@ -40,6 +40,10 @@ def owners():
 def procedures():  
     return []
 
-@api_blueprint.route("/species/")
-def species(): 
-    return []
+@api_blueprint.route("/species/", methods=["POST"])
+def species():
+    data = request.get_json()
+    species_instance = models.Species(name=data['name'])
+    db.sesison.add(species_instance)
+    db.sesion.comit()
+    return {"detail": f"species{species_instance.name} created successfully"}
