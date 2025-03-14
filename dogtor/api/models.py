@@ -19,7 +19,7 @@ class Owner(db.Model):
     mobile = db.Column(String(length=15))
     email = db.Column(String)
 
-    pets = db.relationship("Pet", back_populates="owner")  # ✅ Relación corregida
+    pets = db.relationship("Pet", back_populates="owner") 
 
 pet_species_m2m = db.Table(
     "pet_species",
@@ -39,7 +39,7 @@ class Species(db.Model):
     id = db.Column(Integer, primary_key=True)
     name = db.Column(String(length=20))
 
-    pets = db.relationship("Pet", secondary=pet_species_m2m, back_populates="species")  # ✅ Corrección
+    pets = db.relationship("Pet", secondary=pet_species_m2m, back_populates="species")  
 
 class Pet(db.Model):
     """Pet object"""
@@ -48,12 +48,12 @@ class Pet(db.Model):
     name = db.Column(String(length=20))
     age = db.Column(Integer)
 
-    owner_id = db.Column(Integer, db.ForeignKey("owners.id"))  # ✅ Agregada clave foránea
-    owner = db.relationship("Owner", back_populates="pets")  # ✅ Relación corregida
+    owner_id = db.Column(Integer, db.ForeignKey("owners.id"))  
+    owner = db.relationship("Owner", back_populates="pets")  
 
-    species = db.relationship("Species", secondary=pet_species_m2m, back_populates="pets")  # ✅ Corrección
+    species = db.relationship("Species", secondary=pet_species_m2m, back_populates="pets")  
 
-    records = db.relationship("Record", back_populates="pet")  # ✅ Relación con records
+    records = db.relationship("Record", back_populates="pet")  
 
 class Record(db.Model):
     """Pet record object"""
@@ -62,10 +62,10 @@ class Record(db.Model):
     procedure = db.Column(String(length=255))
     date = db.Column(DateTime)
 
-    pet_id = db.Column(Integer, db.ForeignKey("pets.id"))  # ✅ Clave foránea agregada
-    pet = db.relationship("Pet", back_populates="records")  # ✅ Relación corregida
+    pet_id = db.Column(Integer, db.ForeignKey("pets.id"))  
+    pet = db.relationship("Pet", back_populates="records")  
 
-    categories = db.relationship("Category", secondary=record_category_m2m, back_populates="records")  # ✅ Corrección
+    categories = db.relationship("Category", secondary=record_category_m2m, back_populates="records")  
 
 class Category(db.Model):
     """Record category object"""
@@ -73,4 +73,4 @@ class Category(db.Model):
     id = db.Column(Integer, primary_key=True)
     name = db.Column(String(length=20))
 
-    records = db.relationship("Record", secondary=record_category_m2m, back_populates="categories")  # ✅ Corrección
+    records = db.relationship("Record", secondary=record_category_m2m, back_populates="categories")  

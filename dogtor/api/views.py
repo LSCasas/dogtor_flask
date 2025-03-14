@@ -42,10 +42,15 @@ def owners():
 def procedures():  
     return []
 
-@api_blueprint.route("/species/", methods=["POST"])
+@api_blueprint.route("/species/", methods=["GET", "POST"])
 def species():
-    data = request.get_json()
-    species_instance = models.Species(name=data['name'])
-    db.session.add(species_instance)
-    db.session.commit()
-    return {"detail": f"species{species_instance.name} created successfully"}
+    if request.method == "GET":
+        species_all = models.Species.query.all()
+        return [{"id": species.id, "name": species.name} for species in species_all]
+
+    if request.method == "POST":
+        data = request.get_json()
+        species_instance = models.Species(name=data['name'])
+        db.session.add(species_instance)
+        db.session.commit()
+        return {"detail": f"species{species_instance.name} created successfully"}
