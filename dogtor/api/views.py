@@ -1,5 +1,7 @@
 from flask import request
 from dogtor.api import api_blueprint  
+from . import models
+from ..db import db
 
 users_data = [
     {"id": 1, "username": "alfredo", "email": "luis@hotmail.com"},
@@ -44,6 +46,6 @@ def procedures():
 def species():
     data = request.get_json()
     species_instance = models.Species(name=data['name'])
-    db.sesison.add(species_instance)
-    db.sesion.comit()
+    db.session.add(species_instance)
+    db.session.commit()
     return {"detail": f"species{species_instance.name} created successfully"}
