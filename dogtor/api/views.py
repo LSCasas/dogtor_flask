@@ -1,5 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import jwt
+from functools import wraps
 from flask import request, make_response, jsonify
 from dogtor.api import api_blueprint
 from werkzeug.security import generate_password_hash, check_password_hash  
@@ -11,6 +12,48 @@ users_data = [
     {"id": 2, "username": "user1", "email": "123"},
     {"id": 3, "username": "user1", "email": "123"}
 ]
+
+def token_required(func):
+    @wraps(func)
+    def wrapper():
+        """Validation of token"""
+        from dogtor import Config
+        authorization = request.headers.get("Authorization")
+        prefix = "Bearer "
+        if not authorization:
+            return {"detail": "Missing 'Authorization' header"}, 401
+        
+        if not authorization.startswith(prefix):
+            return {"detail": "Invalid token prefix"}, 401
+        
+        token = authorization.split(" ")[1]
+        if not token:
+            return {"detail": "Missing token"}, 401
+        try:
+            payload = jwt.decode(token, Config.SECRET_KEY, algorithms=["HS256"])
+        
+        except jwt.exceptions.ExpiredSignatureError:
+            return {"detail": "Token expired"}, 401
+        except jwt.exceptions.InvalidAlgorithmError:
+            return {"detail": "Invalid token"}
+        
+        request.user = db.session.execute(
+        db.select(models.User).where(models.User.id == payload["sub"])
+        ).scalar_one()
+
+        return func()
+    return wrapper
+    
+@api_blueprint.route("/profile/", methods=["POST"])
+@token_required
+def mi_funcion():
+    user = request.user
+    return {
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "email": user.email
+    }
+
 
 @api_blueprint.route("/users/<int:user_id>", methods=["GET", "PUT", "DELETE"])
 @api_blueprint.route("/users/", methods=["GET", "POST"])
@@ -37,7 +80,8 @@ def users(user_id=None):
 def pets():
     return []
 
-@api_blueprint.route("/owners/")
+@api_blueprint.route("/owners/", methods=["POST"])
+@token_required
 def owners():
     return []
 
@@ -126,9 +170,9 @@ def login():
     if not check_password_hash(user.password, password):
         return {"detail": "invalid password or password"}, 401
     
-    token = jwt.encode({"sub": user.id,
+    token = jwt.encode({"sub": str(user.id),
                         "iat": datetime.now(),
-                "exp": datetime.now() + timedelta(minutes=30),
+                "exp": datetime.now(timezone.utc) + timedelta(minutes=30),
                 },
                 Config.SECRET_KEY,
                 algorithm="HS256"
