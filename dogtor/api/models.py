@@ -6,8 +6,11 @@ class User(db.Model):
     """User object"""
     __tablename__ = "users"
     id = db.Column(Integer, primary_key=True)
-    username = db.Column(String, unique=True, nullable=False)
+    first_name = db.Column(String(length=50), nullable=False)
+    last_name = db.Column(String(length=50), nullable=False)
     email = db.Column(String, unique=True)
+    password = db.Column(String, nullable=False)
+
 
 class Owner(db.Model):
     """Pet owner object"""

@@ -1,5 +1,8 @@
-from flask import request
-from dogtor.api import api_blueprint  
+from datetime import datetime, timedelta
+import jwt
+from flask import request, make_response, jsonify
+from dogtor.api import api_blueprint
+from werkzeug.security import generate_password_hash, check_password_hash  
 from . import models
 from ..db import db
 
@@ -47,22 +50,22 @@ def procedures():
 @api_blueprint.route("/species/", methods=["GET", "POST"])
 def species(species_id=None):
     if species_id is not None:
+        species = models.Species.query.get_or_404(species_id)
+
         if request.method == "GET":
-            species = models.Species.query.get_or_404(species_id)
             return {"id": species.id, "name": species.name}
-        
+
         elif request.method == "PUT":
             data = request.get_json()
-            species = models.Species.query.get_or_404(species_id)
             species.name = data['name']
             db.session.commit()
             return {"detail": f"Species {species.name} updated successfully"}
-        
+
         elif request.method == "DELETE":
-            species = models.Species.query.get_or_404(species_id)
+            species_name = species.name
             db.session.delete(species)
             db.session.commit()
-            return {"detail": f"Species {species.name} deleted successfully"}
+            return {"detail": f"Species {species_name} deleted successfully"}
 
     else:
         if request.method == "GET":
@@ -75,3 +78,61 @@ def species(species_id=None):
             db.session.add(species_instance)
             db.session.commit()
             return {"detail": f"Species {species_instance.name} created successfully"}
+
+
+@api_blueprint.route("/signup/", methods=["POST"])
+def signup():
+    data = request.get_json()
+    email = data.get("email")
+
+    if not email:
+        return {"detail": "email is required"}, 400
+    
+    user_exists = db.session.execute(
+        db.select(models.User).where(models.User.email == email) 
+    ).scalar_one_or_none()
+
+    if user_exists:
+        return {"detail": "email already taken"}, 400
+    
+    password = data.get("password")
+    user = models.User(
+        first_name = data.get("first_name"),
+        last_name = data.get("last_name"),
+        email = email,
+        password=generate_password_hash(password)
+    )
+    db.session.add(user)
+    db.session.commit()
+    return {"detail": "user created successufully"}, 201
+
+
+@api_blueprint.route("/login/", methods=["POST"])
+def login():
+    """Login on app user """
+    from dogtor import Config
+    data = request.get_json()
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return {"detail": "email or password missiing"}, 400
+    
+    user = db.session.execute(
+        db.select(models.User).where(models.User.email ==  email)
+    ).scalar_one_or_none()
+
+    
+    if not check_password_hash(user.password, password):
+        return {"detail": "invalid password or password"}, 401
+    
+    token = jwt.encode({"sub": user.id,
+                        "iat": datetime.now(),
+                "exp": datetime.now() + timedelta(minutes=30),
+                },
+                Config.SECRET_KEY,
+                algorithm="HS256"
+                )
+
+    return jsonify({"token": token})
+    
